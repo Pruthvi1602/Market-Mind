@@ -15,6 +15,9 @@ QUICK_PICKS = [
     {"name": "TCS",      "ticker": "TCS.NS",      "domain": "tcs.com"},
 ]
 
+def logo_url(domain):
+    return f"https://img.logo.dev/{domain}?token=pk_BCesBqcuRdSBSQkFnHHFWA"
+
 st.set_page_config(page_title="Market Mind", layout="wide")
 
 # ── LANDING HEADER ──
@@ -29,9 +32,8 @@ cols = st.columns(6)
 quick_pick = None
 
 for i, stock in enumerate(QUICK_PICKS):
-    logo_url = f"https://logo.clearbit.com/{stock['domain']}"
     with cols[i]:
-        st.image(logo_url, width=48)
+        st.image(logo_url(stock["domain"]), width=48)
         if st.button(stock["name"], key=stock["ticker"]):
             quick_pick = stock["ticker"]
 
@@ -63,19 +65,20 @@ if ticker:
     st.divider()
 
     # ── STOCK DATA ──
-    st.subheader(f"📈 {ticker} — Live Market Data")
     stock = yf.Ticker(ticker)
     info = stock.info
 
-    # Show company logo if we can find the domain
-    company_name = info.get("longName", "")
-    if company_name:
-        # Try to get logo via Clearbit using company website
-        website = info.get("website", "")
-        if website:
-            domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
-            logo_url = f"https://logo.clearbit.com/{domain}"
-            st.image(logo_url, width=60)
+    # Show logo + company name
+    website = info.get("website", "")
+    if website:
+        domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
+        col_logo, col_title = st.columns([1, 10])
+        with col_logo:
+            st.image(logo_url(domain), width=60)
+        with col_title:
+            st.subheader(f"{info.get('longName', ticker)} ({ticker})")
+    else:
+        st.subheader(f"📈 {ticker} — Live Market Data")
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Current Price", f"${info.get('currentPrice', 'N/A')}")
