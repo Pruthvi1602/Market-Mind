@@ -6,6 +6,15 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 FINNHUB_API_KEY = "d6org59r01qmqugc3g60d6org59r01qmqugc3g6g"
 
+QUICK_PICKS = [
+    {"name": "Apple",    "ticker": "AAPL",        "domain": "apple.com"},
+    {"name": "Tesla",    "ticker": "TSLA",        "domain": "tesla.com"},
+    {"name": "NVIDIA",   "ticker": "NVDA",        "domain": "nvidia.com"},
+    {"name": "Amazon",   "ticker": "AMZN",        "domain": "amazon.com"},
+    {"name": "Reliance", "ticker": "RELIANCE.NS", "domain": "ril.com"},
+    {"name": "TCS",      "ticker": "TCS.NS",      "domain": "tcs.com"},
+]
+
 st.set_page_config(page_title="Market Mind", layout="wide")
 
 # ── LANDING HEADER ──
@@ -13,23 +22,18 @@ st.title("🧠 Market Mind — AI Financial Terminal")
 st.markdown("_Real-time stock data, live news, and AI-powered sentiment analysis — all in one place._")
 st.divider()
 
-# ── QUICK PICKS ──
+# ── QUICK PICKS WITH LOGOS ──
 st.markdown("**⚡ Quick Pick**")
-col1, col2, col3, col4, col5, col6 = st.columns(6)
 
+cols = st.columns(6)
 quick_pick = None
-if col1.button("🍎 Apple"):
-    quick_pick = "AAPL"
-if col2.button("🚗 Tesla"):
-    quick_pick = "TSLA"
-if col3.button("🟩 NVIDIA"):
-    quick_pick = "NVDA"
-if col4.button("📦 Amazon"):
-    quick_pick = "AMZN"
-if col5.button("🇮🇳 Reliance"):
-    quick_pick = "RELIANCE.NS"
-if col6.button("💻 TCS"):
-    quick_pick = "TCS.NS"
+
+for i, stock in enumerate(QUICK_PICKS):
+    logo_url = f"https://logo.clearbit.com/{stock['domain']}"
+    with cols[i]:
+        st.image(logo_url, width=48)
+        if st.button(stock["name"], key=stock["ticker"]):
+            quick_pick = stock["ticker"]
 
 st.divider()
 
@@ -39,7 +43,6 @@ query = st.text_input("Type a company name or ticker (e.g. Apple, TSLA, Reliance
 
 ticker = None
 
-# Quick pick overrides search
 if quick_pick:
     ticker = quick_pick
     st.success(f"Selected: **{ticker}**")
@@ -63,6 +66,16 @@ if ticker:
     st.subheader(f"📈 {ticker} — Live Market Data")
     stock = yf.Ticker(ticker)
     info = stock.info
+
+    # Show company logo if we can find the domain
+    company_name = info.get("longName", "")
+    if company_name:
+        # Try to get logo via Clearbit using company website
+        website = info.get("website", "")
+        if website:
+            domain = website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
+            logo_url = f"https://logo.clearbit.com/{domain}"
+            st.image(logo_url, width=60)
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Current Price", f"${info.get('currentPrice', 'N/A')}")
