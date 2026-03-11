@@ -105,7 +105,7 @@ if ticker:
     total_weight = 0
     now = datetime.now().timestamp()
 
-    if news:
+    if news and isinstance(news, list):
         news_sorted = sorted(news, key=lambda x: x.get("datetime", 0), reverse=True)[:50]
 
         for i, article in enumerate(news_sorted):
