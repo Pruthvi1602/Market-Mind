@@ -1,6 +1,7 @@
 import streamlit as st
 import yfinance as yf
 import requests
+from datetime import datetime
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 FINNHUB_API_KEY = "d6org59r01qmqugc3g60d6org59r01qmqugc3g6g"
@@ -18,8 +19,6 @@ if query:
     search_url = f"https://finnhub.io/api/v1/search?q={query}&token={FINNHUB_API_KEY}"
     res = requests.get(search_url).json()
     results = res.get("result", [])
-
-    # Filter to common equity only to avoid noise
     results = [r for r in results if r.get("type") == "Common Stock"][:10]
 
     if results:
@@ -56,31 +55,51 @@ if ticker:
     news = response.json()
 
     analyzer = SentimentIntensityAnalyzer()
-    scores = []
+    weighted_scores = []
+    total_weight = 0
+    now = datetime.now().timestamp()
 
     if news:
-        for article in news[:8]:
+        # Sort by date, newest first
+        news_sorted = sorted(news, key=lambda x: x.get("datetime", 0), reverse=True)[:50]
+
+        for i, article in enumerate(news_sorted):
             headline = article.get("headline", "")
+            pub_time = article.get("datetime", now)
             score = analyzer.polarity_scores(headline)["compound"]
-            scores.append(score)
 
-            if score >= 0.05:
-                sentiment = "🟢 Positive"
-            elif score <= -0.05:
-                sentiment = "🔴 Negative"
-            else:
-                sentiment = "🟡 Neutral"
+            # Recency weight: newer articles get higher weight
+            # Article age in days
+            age_days = (now - pub_time) / 86400
+            weight = 1 / (1 + age_days)
 
-            st.markdown(f"**{headline}**")
-            st.caption(f"Sentiment: {sentiment} (score: {score:.2f}) | [Read more]({article.get('url', '#')})")
-            st.divider()
+            weighted_scores.append(score * weight)
+            total_weight += weight
+
+            # Only display top 8 in UI
+            if i < 8:
+                if score >= 0.05:
+                    sentiment = "🟢 Positive"
+                elif score <= -0.05:
+                    sentiment = "🔴 Negative"
+                else:
+                    sentiment = "🟡 Neutral"
+
+                st.markdown(f"**{headline}**")
+                st.caption(f"Sentiment: {sentiment} (score: {score:.2f}) | [Read more]({article.get('url', '#')})")
+                st.divider()
+
+        if len(news_sorted) > 8:
+            st.caption(f"_Showing 8 of {len(news_sorted)} headlines analysed for the verdict._")
     else:
         st.info("No news articles found for this ticker.")
 
     # ── FINAL VERDICT ──
     st.subheader("🤖 AI Verdict")
-    if scores:
-        avg = sum(scores) / len(scores)
+    if weighted_scores and total_weight > 0:
+        avg = sum(weighted_scores) / total_weight
+        n = len(weighted_scores)
+
         if avg >= 0.05:
             verdict = "📈 BULLISH — Market sentiment is positive. Analysts may view this as a buying opportunity."
             color = "green"
@@ -92,6 +111,6 @@ if ticker:
             color = "orange"
 
         st.markdown(f"<h3 style='color:{color}'>{verdict}</h3>", unsafe_allow_html=True)
-        st.caption(f"Based on average sentiment score of {avg:.2f} across {len(scores)} recent headlines.")
+        st.caption(f"Based on recency-weighted average sentiment score of {avg:.3f} across {n} headlines. Recent news weighted higher.")
     else:
         st.info("Not enough data to generate a verdict.")
