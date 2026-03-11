@@ -40,13 +40,15 @@ st.divider()
 # ── QUICK PICKS ──
 st.markdown("**⚡ Quick Pick**")
 cols = st.columns(6)
-quick_pick = None
+
+if "quick_pick" not in st.session_state:
+    st.session_state.quick_pick = None
 
 for i, stock in enumerate(QUICK_PICKS):
     with cols[i]:
         st.image(logo_url(stock["domain"]), width=48)
         if st.button(stock["name"], key=stock["ticker"]):
-            quick_pick = stock["ticker"]
+            st.session_state.quick_pick = stock["ticker"]
 
 st.divider()
 
@@ -60,8 +62,8 @@ selection = st_searchbox(
 
 ticker = None
 
-if quick_pick:
-    ticker = quick_pick
+if st.session_state.quick_pick:
+    ticker = st.session_state.quick_pick
     st.success(f"Selected: **{ticker}**")
 elif selection:
     ticker = selection.split("(")[-1].replace(")", "").strip()
