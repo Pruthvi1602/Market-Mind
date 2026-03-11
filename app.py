@@ -7,15 +7,43 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 FINNHUB_API_KEY = "d6org59r01qmqugc3g60d6org59r01qmqugc3g6g"
 
 st.set_page_config(page_title="Market Mind", layout="wide")
+
+# ── LANDING HEADER ──
 st.title("🧠 Market Mind — AI Financial Terminal")
+st.markdown("_Real-time stock data, live news, and AI-powered sentiment analysis — all in one place._")
+st.divider()
+
+# ── QUICK PICKS ──
+st.markdown("**⚡ Quick Pick**")
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+quick_pick = None
+if col1.button("🍎 Apple"):
+    quick_pick = "AAPL"
+if col2.button("🚗 Tesla"):
+    quick_pick = "TSLA"
+if col3.button("🟩 NVIDIA"):
+    quick_pick = "NVDA"
+if col4.button("📦 Amazon"):
+    quick_pick = "AMZN"
+if col5.button("🇮🇳 Reliance"):
+    quick_pick = "RELIANCE.NS"
+if col6.button("💻 TCS"):
+    quick_pick = "TCS.NS"
+
+st.divider()
 
 # ── SEARCH ──
-st.subheader("🔍 Search for a Stock")
+st.subheader("🔍 Or Search for Any Stock")
 query = st.text_input("Type a company name or ticker (e.g. Apple, TSLA, Reliance)", value="")
 
 ticker = None
 
-if query:
+# Quick pick overrides search
+if quick_pick:
+    ticker = quick_pick
+    st.success(f"Selected: **{ticker}**")
+elif query:
     search_url = f"https://finnhub.io/api/v1/search?q={query}&token={FINNHUB_API_KEY}"
     res = requests.get(search_url).json()
     results = res.get("result", [])
@@ -29,6 +57,8 @@ if query:
         st.warning("No results found. Try a different search term.")
 
 if ticker:
+    st.divider()
+
     # ── STOCK DATA ──
     st.subheader(f"📈 {ticker} — Live Market Data")
     stock = yf.Ticker(ticker)
@@ -60,7 +90,6 @@ if ticker:
     now = datetime.now().timestamp()
 
     if news:
-        # Sort by date, newest first
         news_sorted = sorted(news, key=lambda x: x.get("datetime", 0), reverse=True)[:50]
 
         for i, article in enumerate(news_sorted):
@@ -68,15 +97,11 @@ if ticker:
             pub_time = article.get("datetime", now)
             score = analyzer.polarity_scores(headline)["compound"]
 
-            # Recency weight: newer articles get higher weight
-            # Article age in days
             age_days = (now - pub_time) / 86400
             weight = 1 / (1 + age_days)
-
             weighted_scores.append(score * weight)
             total_weight += weight
 
-            # Only display top 8 in UI
             if i < 8:
                 if score >= 0.05:
                     sentiment = "🟢 Positive"
