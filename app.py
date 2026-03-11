@@ -16,7 +16,7 @@ QUICK_PICKS = [
 ]
 
 def logo_url(domain):
-    return f"https://img.logo.dev/{domain}?token=pk_BCesBqcuRdSBSQkFnHHFWA"
+    return f"https://www.google.com/s2/favicons?domain={domain}&sz=64"
 
 st.set_page_config(page_title="Market Mind", layout="wide")
 
